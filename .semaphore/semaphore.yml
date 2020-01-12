@@ -1,0 +1,15 @@
+version: v1.0
+name: apartment-finder
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: Lint
+    task:
+      jobs:
+        - name: gofmt
+          commands:
+            - sem-version go 1.13
+            - checkout
+            - test -z $(gofmt -l *.go)
