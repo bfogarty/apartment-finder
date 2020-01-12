@@ -12,4 +12,4 @@ blocks:
           commands:
             - sem-version go 1.13
             - checkout
-            - test -z (gofmt -l *.go)
+            - test -z $(gofmt -l *.go)
