@@ -1,0 +1,6 @@
+twilio:
+    accountSid: ""
+    authToken: ""
+    phoneFrom: "+10000000000"
+notifications:
+    recipientPhone: "+10000000000"
