@@ -2,5 +2,7 @@ twilio:
     accountSid: ""
     authToken: ""
     phoneFrom: "+10000000000"
+bitly:
+    accessToken: ""
 notifications:
     recipientPhone: "+10000000000"

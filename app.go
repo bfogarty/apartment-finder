@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -137,10 +139,41 @@ func (a *App) reset() {
 	a.newestIDThisScrape = ""
 }
 
+func (a *App) shortenLink(link string) string {
+	body, err := json.Marshal(&ShortenReq{
+		LongURL: link,
+	})
+	if err != nil {
+		return link
+	}
+
+	endpoint := "https://api-ssl.bitly.com/v4/shorten"
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
+	authToken := fmt.Sprintf("Bearer %s", a.config.Bitly.AccessToken)
+	req.Header.Add("Authorization", authToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return link
+	}
+
+	data := &ShortenResp{}
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(data)
+	if err != nil {
+		return link
+	}
+
+	return data.Link
+}
+
 func (a *App) notify(l *Listing) {
 	body := fmt.Sprintf(
 		"New Listing\nLocation: %s\nRent: %d\n%s",
-		l.Location, l.Price, l.URL,
+		l.Location, l.Price, a.shortenLink(l.URL),
 	)
 
 	msg := url.Values{
@@ -150,13 +183,13 @@ func (a *App) notify(l *Listing) {
 	}
 	msgStr := strings.NewReader(msg.Encode())
 
-	twURL := fmt.Sprintf(
+	endpoint := fmt.Sprintf(
 		"https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json",
 		a.config.Twilio.AccountSID,
 	)
 
 	client := &http.Client{}
-	req, _ := http.NewRequest("POST", twURL, msgStr)
+	req, _ := http.NewRequest("POST", endpoint, msgStr)
 	req.SetBasicAuth(a.config.Twilio.AccountSID, a.config.Twilio.AuthToken)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	client.Do(req)

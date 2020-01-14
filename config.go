@@ -13,6 +13,9 @@ type Config struct {
 		AuthToken  string `yaml:"authToken"`
 		PhoneFrom  string `yaml:"phoneFrom"`
 	} `yaml:"twilio"`
+	Bitly struct {
+		AccessToken string `yaml:"accessToken"`
+	} `yaml:"bitly"`
 	Notifications struct {
 		RecipientPhone string `yaml:"recipientPhone"`
 	} `yaml:"notifications"`
