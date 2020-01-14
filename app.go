@@ -37,7 +37,7 @@ func (a *App) Init(configPath string, site string) error {
 	}
 
 	// load config from file
-	config, err := NewConfigFromYAML(configPath)
+	config, err := NewConfig(configPath)
 	if err != nil {
 		return err
 	}
