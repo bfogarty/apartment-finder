@@ -5,4 +5,5 @@ twilio:
 bitly:
     accessToken: ""
 notifications:
-    recipientPhone: "+10000000000"
+    recipientPhones:
+        - "+10000000000"

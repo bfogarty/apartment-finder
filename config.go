@@ -17,7 +17,7 @@ type Config struct {
 		AccessToken string `yaml:"accessToken"`
 	} `yaml:"bitly"`
 	Notifications struct {
-		RecipientPhone string `yaml:"recipientPhone"`
+		RecipientPhones []string `yaml:"recipientPhones"`
 	} `yaml:"notifications"`
 }
 
