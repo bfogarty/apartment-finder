@@ -41,7 +41,11 @@ func (b *BitlyClient) ShortenLink(link string) (string, error) {
 	}
 
 	client := &http.Client{}
-	req, _ := http.NewRequest("POST", shortenEndpoint, bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", shortenEndpoint, bytes.NewBuffer(body))
+	if err != nil {
+		return "", ErrShorteningLink
+	}
+
 	authToken := fmt.Sprintf("Bearer %s", b.accessToken)
 	req.Header.Add("Authorization", authToken)
 	req.Header.Add("Content-Type", "application/json")
