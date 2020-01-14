@@ -13,3 +13,6 @@ blocks:
             - sem-version go 1.13
             - checkout
             - test -z $(gofmt -l *.go)
+promotions:
+    - name: Deploy Production
+      pipeline_file: heroku.yml
