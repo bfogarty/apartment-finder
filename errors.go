@@ -10,3 +10,6 @@ var ErrLoadingConfig = errors.New("error loading configuration")
 
 // ErrShorteningLink is caused by an error shortening a URL.
 var ErrShorteningLink = errors.New("error shortening link")
+
+// ErrSendingSMS is caused by an error sending an SMS.
+var ErrSendingSMS = errors.New("error sending SMS")

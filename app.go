@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -26,6 +25,7 @@ type App struct {
 	countNewLastScrape int
 
 	bitly     *BitlyClient
+	twilio    *TwilioClient
 	config    *Config
 	collector *colly.Collector
 }
@@ -45,6 +45,7 @@ func (a *App) Init(configPath string, site string) error {
 
 	a.site = site
 	a.bitly = NewBitlyClient(a.config.Bitly.AccessToken)
+	a.twilio = NewTwilioClient(a.config.Twilio.AccountSID, a.config.Twilio.AuthToken)
 
 	// initialize the collector
 	c := colly.NewCollector(
@@ -149,21 +150,13 @@ func (a *App) notify(l *Listing) {
 		l.Location, l.Price, shortURL,
 	)
 
-	msg := url.Values{
-		"To":   {a.config.Notifications.RecipientPhone},
-		"From": {a.config.Twilio.PhoneFrom},
-		"Body": {body},
-	}
-	msgStr := strings.NewReader(msg.Encode())
-
-	endpoint := fmt.Sprintf(
-		"https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json",
-		a.config.Twilio.AccountSID,
+	err = a.twilio.SendSMS(
+		a.config.Notifications.RecipientPhone,
+		a.config.Twilio.PhoneFrom,
+		body,
 	)
 
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", endpoint, msgStr)
-	req.SetBasicAuth(a.config.Twilio.AccountSID, a.config.Twilio.AuthToken)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	client.Do(req)
+	if err != nil {
+		log.Print(err)
+	}
 }
