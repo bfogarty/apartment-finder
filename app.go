@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -27,6 +25,7 @@ type App struct {
 	// number of new listings seen on the last scrape
 	countNewLastScrape int
 
+	bitly     *BitlyClient
 	config    *Config
 	collector *colly.Collector
 }
@@ -37,15 +36,15 @@ func (a *App) Init(configPath string, site string) error {
 		return ErrAlreadyInitialized
 	}
 
-	// set site
-	a.site = site
-
 	// load config from file
 	config, err := NewConfigFromYAML(configPath)
 	if err != nil {
 		return err
 	}
 	a.config = config
+
+	a.site = site
+	a.bitly = NewBitlyClient(a.config.Bitly.AccessToken)
 
 	// initialize the collector
 	c := colly.NewCollector(
@@ -139,41 +138,15 @@ func (a *App) reset() {
 	a.newestIDThisScrape = ""
 }
 
-func (a *App) shortenLink(link string) string {
-	body, err := json.Marshal(&ShortenReq{
-		LongURL: link,
-	})
-	if err != nil {
-		return link
-	}
-
-	endpoint := "https://api-ssl.bitly.com/v4/shorten"
-
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", endpoint, bytes.NewBuffer(body))
-	authToken := fmt.Sprintf("Bearer %s", a.config.Bitly.AccessToken)
-	req.Header.Add("Authorization", authToken)
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return link
-	}
-
-	data := &ShortenResp{}
-	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(data)
-	if err != nil {
-		return link
-	}
-
-	return data.Link
-}
-
 func (a *App) notify(l *Listing) {
+	shortURL, err := a.bitly.ShortenLink(l.URL)
+	if err != nil {
+		shortURL = l.URL
+	}
+
 	body := fmt.Sprintf(
 		"New Listing\nLocation: %s\nRent: %d\n%s",
-		l.Location, l.Price, a.shortenLink(l.URL),
+		l.Location, l.Price, shortURL,
 	)
 
 	msg := url.Values{
