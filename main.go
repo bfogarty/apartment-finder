@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 )
 
 func main() {
@@ -21,5 +22,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.Watch(budget, bedrooms)
+	a.Watch(budget, bedrooms, 3*time.Minute)
 }

@@ -63,7 +63,7 @@ func (a *App) Init(configPath string, site string) error {
 }
 
 // Watch begins monitoring for new listings.
-func (a *App) Watch(budget string, bedrooms string) {
+func (a *App) Watch(budget string, bedrooms string, interval time.Duration) {
 	params := url.Values{
 		"max_price":        {budget},
 		"min_bedrooms":     {bedrooms},
@@ -81,7 +81,7 @@ func (a *App) Watch(budget string, bedrooms string) {
 			"Found %d new listing(s) on the last scrape.\n",
 			a.countNewLastScrape,
 		)
-		time.Sleep(3 * time.Second)
+		time.Sleep(interval)
 	}
 }
 
