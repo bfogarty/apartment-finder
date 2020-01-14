@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -44,6 +45,8 @@ func (t *TwilioClient) SendSMS(to string, from string, body string) error {
 	if err != nil {
 		return ErrSendingSMS
 	}
+
+	log.Printf("Sent SMS to %s", to)
 
 	return nil
 }

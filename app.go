@@ -150,11 +150,9 @@ func (a *App) notify(l *Listing) {
 		l.Location, l.Price, shortURL,
 	)
 
-	err = a.twilio.SendSMS(
-		a.config.Notifications.RecipientPhone,
-		a.config.Twilio.PhoneFrom,
-		body,
-	)
+	for _, recipient := range a.config.Notifications.RecipientPhones {
+		err = a.twilio.SendSMS(recipient, a.config.Twilio.PhoneFrom, body)
+	}
 
 	if err != nil {
 		log.Print(err)
