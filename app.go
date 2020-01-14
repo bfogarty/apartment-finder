@@ -18,12 +18,12 @@ type App struct {
 	isInitialized bool
 	// the Craigslist site, e.g., "boston"
 	site string
-	// ID of the newest listing in the current scrape
-	currentNewestID string
-	// ID of the newest listing in the last scrape
-	lastNewestID string
-	// listings retrieved in the last scrape
-	lastRetrieved int
+	// ID of the newest listing seen last scrape
+	newestIDLastScrape string
+	// ID of the newest listing seen this scrape
+	newestIDThisScrape string
+	// number of new listings seen on the last scrape
+	countNewLastScrape int
 
 	config    *Config
 	collector *colly.Collector
@@ -50,7 +50,7 @@ func (a *App) Init(configPath string, site string) error {
 		colly.AllowURLRevisit(),
 	)
 	c.OnRequest(func(_ *colly.Request) {
-		a.lastRetrieved = 0
+		a.countNewLastScrape = 0
 	})
 	c.OnHTML("ul.rows", func(e *colly.HTMLElement) {
 		e.ForEachWithBreak("li.result-row,h4.nearby", a.handleRow)
@@ -75,25 +75,36 @@ func (a *App) Watch(budget string, bedrooms string) {
 
 	for {
 		a.collector.Visit(clURL)
-		log.Printf("Retrieved %d listing(s).\n", a.lastRetrieved)
+		log.Printf(
+			"Found %d new listing(s) on the last scrape.\n",
+			a.countNewLastScrape,
+		)
 		time.Sleep(3 * time.Second)
 	}
 }
 
-func (a *App) handleRow(i int, row *colly.HTMLElement) bool {
-	id := row.Attr("data-pid")
+func (a *App) isFirstRun() bool {
+	return a.newestIDLastScrape == ""
+}
 
-	if i == 0 {
-		a.currentNewestID = id
+func (a *App) shouldBreakAtRow(row *colly.HTMLElement) bool {
+	// stop if the row is a "Few local results found" banner
+	if strings.Contains(row.Attr("class"), "nearby") {
+		return true
 	}
 
-	// Show only results more recent than the last we've seen, and before the
-	// "Few local results found" banner. We rely on the fact that Craigslist sorts
-	// the listings newest first, so rather than parse dates ourselves, we break
-	// if we see an ID we've seen before.
-	if strings.Contains(row.Attr("class"), "nearby") || id == a.lastNewestID {
-		a.lastNewestID = a.currentNewestID
-		a.currentNewestID = ""
+	// break immediately on first run or if this is a listing we've seen
+	return a.isFirstRun() || row.Attr("data-pid") == a.newestIDLastScrape
+}
+
+func (a *App) handleRow(i int, row *colly.HTMLElement) bool {
+	if i == 0 {
+		a.newestIDThisScrape = row.Attr("data-pid")
+	}
+
+	if a.shouldBreakAtRow(row) {
+		a.newestIDLastScrape = a.newestIDThisScrape
+		a.newestIDThisScrape = ""
 		return false
 	}
 
@@ -112,19 +123,21 @@ func (a *App) handleRow(i int, row *colly.HTMLElement) bool {
 	}
 
 	a.notify(&Listing{
-		ID:       id,
 		Title:    title,
 		URL:      url,
 		Location: loc,
 		Price:    price,
 	})
 
-	a.lastRetrieved++
+	a.countNewLastScrape++
 	return true
 }
 
 func (a *App) notify(l *Listing) {
-	body := fmt.Sprintf("New Listing\nLocation: %s\nRent: %d\n%s", l.Location, l.Price, l.URL)
+	body := fmt.Sprintf(
+		"New Listing\nLocation: %s\nRent: %d\n%s",
+		l.Location, l.Price, l.URL,
+	)
 
 	msg := url.Values{
 		"To":   {a.config.Notifications.RecipientPhone},
@@ -133,7 +146,10 @@ func (a *App) notify(l *Listing) {
 	}
 	msgStr := strings.NewReader(msg.Encode())
 
-	twURL := fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", a.config.Twilio.AccountSID)
+	twURL := fmt.Sprintf(
+		"https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json",
+		a.config.Twilio.AccountSID,
+	)
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("POST", twURL, msgStr)
