@@ -25,6 +25,7 @@ type App struct {
 	// number of new listings seen on the last scrape
 	countNewLastScrape int
 
+	bitly     *BitlyClient
 	config    *Config
 	collector *colly.Collector
 }
@@ -35,15 +36,15 @@ func (a *App) Init(configPath string, site string) error {
 		return ErrAlreadyInitialized
 	}
 
-	// set site
-	a.site = site
-
 	// load config from file
 	config, err := NewConfigFromYAML(configPath)
 	if err != nil {
 		return err
 	}
 	a.config = config
+
+	a.site = site
+	a.bitly = NewBitlyClient(a.config.Bitly.AccessToken)
 
 	// initialize the collector
 	c := colly.NewCollector(
@@ -138,9 +139,14 @@ func (a *App) reset() {
 }
 
 func (a *App) notify(l *Listing) {
+	shortURL, err := a.bitly.ShortenLink(l.URL)
+	if err != nil {
+		shortURL = l.URL
+	}
+
 	body := fmt.Sprintf(
 		"New Listing\nLocation: %s\nRent: %d\n%s",
-		l.Location, l.Price, l.URL,
+		l.Location, l.Price, shortURL,
 	)
 
 	msg := url.Values{
@@ -150,13 +156,13 @@ func (a *App) notify(l *Listing) {
 	}
 	msgStr := strings.NewReader(msg.Encode())
 
-	twURL := fmt.Sprintf(
+	endpoint := fmt.Sprintf(
 		"https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json",
 		a.config.Twilio.AccountSID,
 	)
 
 	client := &http.Client{}
-	req, _ := http.NewRequest("POST", twURL, msgStr)
+	req, _ := http.NewRequest("POST", endpoint, msgStr)
 	req.SetBasicAuth(a.config.Twilio.AccountSID, a.config.Twilio.AuthToken)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	client.Do(req)
