@@ -50,7 +50,7 @@ func (a *App) Init(configPath string, site string) error {
 		colly.AllowURLRevisit(),
 	)
 	c.OnRequest(func(_ *colly.Request) {
-		a.countNewLastScrape = 0
+		a.reset()
 	})
 	c.OnHTML("ul.rows", func(e *colly.HTMLElement) {
 		e.ForEachWithBreak("li.result-row,h4.nearby", a.handleRow)
@@ -103,8 +103,6 @@ func (a *App) handleRow(i int, row *colly.HTMLElement) bool {
 	}
 
 	if a.shouldBreakAtRow(row) {
-		a.newestIDLastScrape = a.newestIDThisScrape
-		a.newestIDThisScrape = ""
 		return false
 	}
 
@@ -131,6 +129,12 @@ func (a *App) handleRow(i int, row *colly.HTMLElement) bool {
 
 	a.countNewLastScrape++
 	return true
+}
+
+func (a *App) reset() {
+	a.countNewLastScrape = 0
+	a.newestIDLastScrape = a.newestIDThisScrape
+	a.newestIDThisScrape = ""
 }
 
 func (a *App) notify(l *Listing) {
