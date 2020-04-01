@@ -18,7 +18,3 @@ promotions:
     pipeline_file: github-packages.yml
     auto_promote:
       when: "result = 'passed' and branch = 'master'"
-  - name: Deploy Production
-    pipeline_file: heroku.yml
-    auto_promote:
-      when: "result = 'passed' and branch = 'master'"
