@@ -63,13 +63,13 @@ func (a *App) Init(configPath string, site string) error {
 }
 
 // Watch begins monitoring for new listings.
-func (a *App) Watch(budget string, bedrooms string, interval time.Duration) {
+func (a *App) Watch(budget string, bedrooms string, brokers_fee bool, interval time.Duration) {
 	params := url.Values{
 		"max_price":        {budget},
 		"min_bedrooms":     {bedrooms},
 		"max_bedrooms":     {bedrooms},
 		"availabilityMode": {"0"},
-		"broker_fee":       {"1"},
+		"broker_fee":       {Btos(brokers_fee)},
 		"sale_date":        {"all+dates"},
 	}.Encode()
 
