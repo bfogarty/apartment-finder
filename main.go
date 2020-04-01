@@ -1,26 +1,34 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
 	"time"
+
+	"github.com/docopt/docopt-go"
 )
 
 func main() {
-	args := os.Args
-	if len(os.Args) != 4 {
-		fmt.Println("Usage:", os.Args[0], "<site>", "<budget>", "<bedrooms>")
-		return
-	}
-	site := args[1]
-	budget := args[2]
-	bedrooms := args[3]
+	usage := `Apartment Finder
+
+Usage:
+  apartment-finder [--no-broker-fee] SITE BUDGET BEDROOMS
+  apartment-finder -h | --help
+
+Arguments:
+  SITE      The Craigslist subdomain, e.g., "boston"
+  BUDGET    The maximum budget, in dollars.
+  BEDROOMS  The number of bedrooms.
+
+Options:
+  -h --help        Show this screen.
+  --no-broker-fee  Find only apartments with no broker's fee.`
+
+	args, _ := docopt.ParseDoc(usage)
 
 	a := &App{}
-	err := a.Init("config.yml", site)
+	err := a.Init("config.yml", args["SITE"].(string))
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.Watch(budget, bedrooms, 3*time.Minute)
+	a.Watch(args["BUDGET"].(string), args["BEDROOMS"].(string), args["--no-broker-fee"].(bool), 3*time.Minute)
 }
