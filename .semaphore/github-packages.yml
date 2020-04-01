@@ -1,0 +1,21 @@
+version: v1.0
+name: github-packages
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: Build and push
+    task:
+      secrets:
+        - name: github-packages
+      prologue:
+        commands:
+          - echo "${GH_TOKEN}" | docker login docker.pkg.github.com -u "${GH_USER}" --password-stdin
+      jobs:
+        - name: build-and-push
+          commands:
+            - checkout --use-cache
+            - docker build -t "docker.pkg.github.com/bfogarty/apartment-finder/apartment-finder:${SEMAPHORE_GIT_SHA:0:7}" -t "docker.pkg.github.com/bfogarty/apartment-finder/apartment-finder:latest" .
+            - docker push "docker.pkg.github.com/bfogarty/apartment-finder/apartment-finder:${SEMAPHORE_GIT_SHA:0:7}"
+            - docker push "docker.pkg.github.com/bfogarty/apartment-finder/apartment-finder:latest"
